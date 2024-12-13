@@ -1,8 +1,7 @@
 [build]
     functions = "functions"
+    publish = "distt"
 
-[dev]
-  publish = "distt"
 
 
 [[redirects]]
