@@ -11,9 +11,12 @@ const cors = require('cors');
 dotenv.config({path: "./.env"});
 const app = express();
 
-const port =  5000;
-
-app.use(cors());
+const port = process.env.PORT || 5000;
+app.use(cors({
+  origin: ["https://www.optimadata.ai"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  credentials: true
+}));
 app.use(express.json());
 
 app.use(express.urlencoded({ extended: true }));
