@@ -38,10 +38,8 @@ const convertToCsv = async (leads) => {
       ]
     });
 
-    // Write records to CSV
     await csvWriter.writeRecords(leads);
 
-    // Return the path to the CSV file
     console.log("Done --- ")
     return 'leads.csv';
   } catch (error) {
@@ -144,6 +142,7 @@ const createLeadCSV = async (req, res) => {
   try {
     const user_id = req.query.user_id;
     const leadsArray = req.body.leads; // Assuming leads is an array of leads in the request body
+    console.log("Leads Array -- " , leadsArray);
 
     // Check if leadsArray is provided and it's an array
     if (!Array.isArray(leadsArray) || leadsArray.length === 0) {
@@ -387,20 +386,20 @@ const sendEmailLead = async (req, res) => {
   // Convert lead details to CSV
   try{
     const emailArray = leadArray.map(lead => ({
-      userId: user_id, // Using user_id from query params
-      leadEmail: lead.ownerEmail, // Assuming lead email is stored in ownerEmail field
+      userId: user_id,
+      leadEmail: lead.ownerEmail,
       brokerEmail: brokerEmail
     }));
     console.log( "Entered---- ",)
     const { addedEntries, skippedEntries } = await addDataToDatabase(emailArray);
 
-    if (skippedEntries.length > 0) {
-      const skippedLeadEmails = skippedEntries.map(entry => entry.leadEmail);
-      return res.status(200).send({
-        status: 0,
-        message: `Cannot send ${skippedLeadEmails} to the broker.`
-      })
-    }
+    // if (skippedEntries.length > 0) {
+    //   const skippedLeadEmails = skippedEntries.map(entry => entry.leadEmail);
+    //   return res.status(200).send({
+    //     status: 0,
+    //     message: `Cannot send ${skippedLeadEmails} to the broker.`
+    //   })
+    // }
    
   const csvFilePath  = await convertToCsv(leadArray);
   console.log( "CSV file path ---- ", csvFilePath)
