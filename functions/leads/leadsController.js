@@ -5,6 +5,8 @@ const sentLead = require("./trackLeadModel");
 const Broker = require("../brokers/brokersModel");
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const nodemailer = require('nodemailer');
+const Readable = require('stream');
+const { format } = require('@fast-csv/format');
 
 
 const transporter = nodemailer.createTransport({
@@ -18,34 +20,22 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const convertToCsv = async (leads) => {
-  try {
-    const csvWriter = createCsvWriter({
-      path: 'leads.csv',
-      header: [
-        { id: '_id', title: 'ID' },
-        { id: 'user_id', title: 'Sender\'s ID' },
-        { id: 'ownerName', title: 'Owner Name' },
-        { id: 'ownerPhone', title: 'Owner Phone' },
-        { id: 'monthlyRevenue', title: 'Monthly Revenue' },
-        { id: 'industry', title: 'Industry' },
-        { id: 'location', title: 'Location' },
-        { id: 'SINno', title: 'SIN No' },
-        { id: 'EINno', title: 'EIN No' },
-        { id: 'ownerEmail', title: 'Owner Email' },
-        { id: 'createdAt', title: 'Created At' },
-        { id: '__v', title: 'V' }
-      ]
+const convertToCsv = (leads) => {
+  console.log("Converting to CSV -- ", leads);
+  return new Promise((resolve, reject) => {
+    const csvStream = format({ headers: true });
+    const chunks = [];
+
+    csvStream.on('data', chunk => chunks.push(chunk));
+    csvStream.on('end', () => {
+      const buffer = Buffer.concat(chunks);
+      resolve(buffer);
     });
+    csvStream.on('error', reject);
 
-    await csvWriter.writeRecords(leads);
-
-    console.log("Done --- ")
-    return 'leads.csv';
-  } catch (error) {
-    console.error('Error writing CSV:', error);
-    throw error;
-  }
+    leads.forEach(lead => csvStream.write(lead));
+    csvStream.end();
+  });
 };
 
 // create Leads
@@ -391,7 +381,7 @@ const sendEmailLead = async (req, res) => {
       brokerEmail: brokerEmail
     }));
     console.log( "Entered---- ",)
-    const { addedEntries, skippedEntries } = await addDataToDatabase(emailArray);
+    // const { addedEntries, skippedEntries } = await addDataToDatabase(emailArray);
 
     // if (skippedEntries.length > 0) {
     //   const skippedLeadEmails = skippedEntries.map(entry => entry.leadEmail);
@@ -401,8 +391,9 @@ const sendEmailLead = async (req, res) => {
     //   })
     // }
    
-  const csvFilePath  = await convertToCsv(leadArray);
-  console.log( "CSV file path ---- ", csvFilePath)
+  // const csvFilePath  = await convertToCsv(leadArray);
+  const csvBuffer = await convertToCsv(leadArray);
+  console.log( "CSV file path ---- ", csvBuffer)
 
   // Send email
   var mailOptions = {
@@ -411,11 +402,13 @@ const sendEmailLead = async (req, res) => {
     subject: "Leads from OptimLeads",
     text: `Please find the attached CSV file containing lead details. ${note}`,
     attachments: [
-      {
-          filename: 'leads.csv',
-          path: csvFilePath
-      }
-  ]
+  {
+    filename: 'leads.csv',
+    content: csvBuffer, // ✅ Correct usage
+    contentType: 'text/csv'
+  }
+]
+
   };
   console.log( "mailOption Correct---- ",)
 
@@ -440,7 +433,7 @@ const sendEmailLead = async (req, res) => {
       });
   } catch (error) {
       console.error('Error sending email:', error);
-      return res.status(500).send({satus: 0 , message : 'Failed to send email'});
+      return res.status(500).send({satus: 0 , message : 'Failed to send email , SWW'});
   }
 }
 
